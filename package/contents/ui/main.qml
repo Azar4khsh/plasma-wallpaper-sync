@@ -28,8 +28,6 @@ PlasmoidItem {
     property bool inEditMode: Plasmoid.containment?.corona?.editMode ?? false
     property bool onDesktop: Plasmoid.location === PlasmaCore.Types.Floating
     property string pluginName
-    property bool hasErrors: errors.length > 0
-    property list<var> errors: []
     property bool delay: false
     property bool destroying: false
     property bool completed: false
@@ -38,6 +36,11 @@ PlasmoidItem {
     property string lastUsedPlugin
     readonly property bool pluginAvailable: syncPlugin !== null
     property var syncPlugin: null
+    readonly property bool hasErrors: errorsModel.count > 0
+
+    ListModel {
+        id: errorsModel
+    }
 
     function loadPlugin() {
         // qmlformat off
@@ -51,6 +54,30 @@ PlasmoidItem {
             console.debug("WallpaperSync plugin not found:", e);
         }
         // qmlformat on
+    }
+
+    function setError(where: string, message) {
+        let index = -1;
+        for (let i = 0; i < errorsModel.count; i++) {
+            if (errorsModel.get(i).where === where) {
+                index = i;
+                break;
+            }
+        }
+        if (!message) {
+            if (index >= 0) {
+                errorsModel.remove(index);
+            }
+        } else {
+            if (index >= 0) {
+                errorsModel.setProperty(index, "message", message);
+            } else {
+                errorsModel.append({
+                    where,
+                    message
+                });
+            }
+        }
     }
 
     function claimSingleton() {
@@ -142,6 +169,7 @@ PlasmoidItem {
             if (i === root.screen) {
                 continue;
             }
+            const where = `Desktop(dbus)`;
             const reply = DBus.SessionBus.asyncCall({
                 "service": "org.kde.plasmashell",
                 "path": "/PlasmaShell",
@@ -153,12 +181,11 @@ PlasmoidItem {
             }) as DBus.DBusPendingReply;
             reply.finished.connect(() => {
                 if (reply.isError) {
-                    const [where, message] = ["Desktop", `Failed to set wallpaper: ${reply.error.message}`];
+                    const message = `Failed to set wallpaper: ${reply.error.message}`;
                     console.warn(message);
-                    errors.push({
-                        where,
-                        message
-                    });
+                    setError(where, message);
+                } else {
+                    setError(where);
                 }
                 reply.destroy();
             });
@@ -191,20 +218,19 @@ PlasmoidItem {
         }
         runCommand.exec(cmds.join(" && "), output => {
             if (output.exitCode !== 0) {
-                let [where, message] = ["Lock(helper)", `Failed to set wallpaper: ${pluginError}`];
-                errors.push({
-                    where,
-                    message
-                });
+                let where = "Lock(helper)";
+                let message = `Failed to set wallpaper: ${pluginError}`;
+                setError(where, message);
                 console.warn(`${where}: ${message}`);
 
                 const fallbackError = output.stderr.trim() || output.stdout.trim();
-                [where, message] = ["Lock(fallback)", `Failed to set wallpaper: ${fallbackError}`];
-                errors.push({
-                    where,
-                    message
-                });
+                where = "Lock(fallback)";
+                message = `Failed to set wallpaper: ${fallbackError}`;
+                setError(where, message);
                 console.warn(`${where}: ${message}`);
+            } else {
+                setError("Lock(helper)");
+                setError("Lock(fallback)");
             }
         });
     }
@@ -218,15 +244,14 @@ PlasmoidItem {
         } else {
             error = "Plugin not found";
         }
-        if (!error) {
-            return;
+
+        const where = "Login(plugin)";
+        let message;
+        if (error) {
+            message = `Failed to set wallpaper: ${error}`;
+            console.warn(`${where}: ${message}`);
         }
-        const [where, message] = ["Login(plugin)", `Failed to set wallpaper: ${error}`];
-        console.warn(`${where}: ${message}`);
-        errors.push({
-            where,
-            message
-        });
+        setError(where, message);
     }
 
     // Plugins may save colors as Color type, we need to convert them
@@ -265,7 +290,6 @@ PlasmoidItem {
         if (!isEnabled || !root.pluginName) {
             return;
         }
-        errors = [];
         lastUsedPlugin = pluginName;
         if (lastUsedPlugin === "org.kde.slideshow") {
             lastUsedPlugin = "org.kde.image";
@@ -388,7 +412,7 @@ PlasmoidItem {
                 Layout.alignment: Qt.AlignHCenter
                 icon.name: "edit-copy-symbolic"
                 onClicked: {
-                    clipboard.content = errors.map(e => `${e.where}: ${e.message}`).join("\n");
+                    clipboard.content = errorsTextArea.text;
                 }
             }
             Kirigami.AbstractCard {
@@ -398,7 +422,15 @@ PlasmoidItem {
                 contentItem: PlasmaComponents.ScrollView {
                     Layout.fillWidth: true
                     TextArea {
-                        text: errors.map(e => `${e.where}: ${e.message}`).join("\n")
+                        id: errorsTextArea
+                        text: {
+                            const errorTexts = [];
+                            for (let i = 0; i < errorsModel.count; i++) {
+                                const item = errorsModel.get(i);
+                                errorTexts.push(`${item.where}: ${item.message}`);
+                            }
+                            return errorTexts.join("\n");
+                        }
                         font: Kirigami.Theme.smallFont
                         // HACK: silence binding loop warnings.
                         // contentWidth seems to be causing the binding loop,
