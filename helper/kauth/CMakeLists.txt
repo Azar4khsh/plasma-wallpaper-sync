@@ -1,4 +1,3 @@
-
 set(PLASMALOGIN_CONFIG_FILE "${CMAKE_INSTALL_FULL_SYSCONFDIR}/plasmalogin.conf" CACHE PATH "Path of the plasma-login config file")
 
 configure_file(config.h.in config.h IMMEDIATE @ONLY)
@@ -18,7 +17,6 @@ target_link_libraries(kauth_core
     Qt6::DBus
     KF6::ConfigCore
     KF6::AuthCore
-    KF6::I18n
 )
 
 add_executable(wallpapersync_kauthhelper)

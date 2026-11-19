@@ -33,8 +33,6 @@
 
 #include <KConfig>
 #include <KConfigGroup>
-#include <KLazyLocalizedString>
-#include <KLocalizedString>
 #include <KUser>
 
 static const QFile::Permissions standardPermissions = QFile::ReadOwner | QFile::WriteOwner | QFile::ReadGroup | QFile::ReadOther;
