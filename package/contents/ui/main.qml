@@ -24,7 +24,6 @@ PlasmoidItem {
     readonly property bool hideWidget: {
         return Plasmoid.configuration.hideWidget && canHide;
     }
-    readonly property string helperExecutable: "plasma-wallpaper-sync-helper"
     property bool wasExpanded
     property bool inEditMode: Plasmoid.containment?.corona?.editMode ?? false
     property bool onDesktop: Plasmoid.location === PlasmaCore.Types.Floating
@@ -37,6 +36,22 @@ PlasmoidItem {
     property string serializedConfig
     property var config: ({})
     property string lastUsedPlugin
+    readonly property bool pluginAvailable: syncPlugin !== null
+    property var syncPlugin: null
+
+    function loadPlugin() {
+        // qmlformat off
+        try {
+            syncPlugin = Qt.createQmlObject(
+                'import com.github.luisbocanegra.wallpapersync 1.0; WallpaperSync {}',
+                root,
+                "DynamicWallpaperSync"
+            );
+        } catch (e) {
+            console.debug("WallpaperSync plugin not found:", e);
+        }
+        // qmlformat on
+    }
 
     function claimSingleton() {
         if (ActiveSync.activeId === -1 && onDesktop && !destroying && completed) {
@@ -96,6 +111,7 @@ PlasmoidItem {
     }
 
     Component.onCompleted: {
+        loadPlugin();
         completed = true;
         restoreSingleton();
         claimSingleton();
@@ -153,29 +169,29 @@ PlasmoidItem {
         return "'" + s.replace(/'/g, "'\\''") + "'";
     }
 
-    function setLockScreen(plugin: string, config: string) {
-        const helperCommand = `${shellQuote(helperExecutable)} --lock --plugin ${plugin} --config ${shellQuote(config)}`;
-        runCommand.exec(helperCommand, output => {
-            if (output.exitCode !== 0) {
-                const error = output.stderr.trim() || output.stdout.trim();
-                setLockScreenFallback(plugin, config, error);
+    function setLockScreen(plugin: string, config: var, serializedConfig: string) {
+        let error;
+        if (pluginAvailable) {
+            error = syncPlugin.setLockScreenWallpaper(plugin, serializedConfig);
+            if (!error) {
+                return;
             }
-        });
+        } else {
+            error = "Plugin not found";
+        }
+        setLockScreenKwriteConfigFallback(plugin, config, error);
     }
 
-    function setLockScreenFallback(plugin: string, config: string, helperError: string) {
+    function setLockScreenKwriteConfigFallback(plugin: string, config: var, pluginError: string) {
         const kwrite = "kwriteconfig6 --file kscreenlockerrc --group Greeter ";
         const cmds = [kwrite + "--key WallpaperPlugin " + shellQuote(plugin)];
         const group = kwrite + "--group Wallpaper --group " + shellQuote(plugin) + " --group General --key ";
         for (let key in config) {
             cmds.push(group + shellQuote(key) + " " + shellQuote(config[key]));
-            if (key === "Image") {
-                cmds.push(group + "PreviewImage " + shellQuote(config[key]));
-            }
         }
         runCommand.exec(cmds.join(" && "), output => {
             if (output.exitCode !== 0) {
-                let [where, message] = ["Lock(helper)", `Failed to set wallpaper: ${helperError}`];
+                let [where, message] = ["Lock(helper)", `Failed to set wallpaper: ${pluginError}`];
                 errors.push({
                     where,
                     message
@@ -193,32 +209,35 @@ PlasmoidItem {
         });
     }
 
-    function setPlasmaLogin(plugin: string, config: string) {
-        const helperCommand = `${shellQuote(helperExecutable)} --login --plugin ${plugin} --config ${shellQuote(config)}`;
-        runCommand.exec(helperCommand, output => {
-            if (output.exitCode !== 0) {
-                const error = output.stderr.trim() || output.stdout.trim();
-                const [where, message] = ["Login", `Failed to set wallpaper: ${error}`];
-                console.warn(`${where}: ${message}`);
-                errors.push({
-                    where,
-                    message
-                });
-            }
+    // FIXME(?): KAuth logs a warning about the parent window (DesktopView)
+    // not being an XDG toplevel window
+    function setPlasmaLogin(plugin: string, serializedConfig: string) {
+        let error;
+        if (pluginAvailable) {
+            error = syncPlugin.setPlasmaLoginWallpaper(plugin, serializedConfig);
+        } else {
+            error = "Plugin not found";
+        }
+        if (!error) {
+            return;
+        }
+        const [where, message] = ["Login(plugin)", `Failed to set wallpaper: ${error}`];
+        console.warn(`${where}: ${message}`);
+        errors.push({
+            where,
+            message
         });
     }
 
     // Plugins may save colors as Color type, we need to convert them
     // to a format plugins can read back from the configuration
     function serializeConfig(config) {
-        const to255 = val => Math.min(255, Math.max(0, Math.round(val * 255)));
-
         return JSON.stringify(config, function (key, value) {
             // qmlformat off
             if (typeof value === "object" && value !== null &&
                 typeof value.r === "number" && typeof value.g === "number" &&
                 typeof value.b === "number" && typeof value.a === "number") {
-                return `${to255(value.r)},${to255(value.g)},${to255(value.b)}`;
+                return value.toString();
             }
             // qmlformat on
             return value;
@@ -231,8 +250,13 @@ PlasmoidItem {
             if (key.endsWith("Default")) {
                 continue;
             }
-            console.log(key, wallpaperConfig[key]);
-            config[key] = wallpaperConfig[key];
+            const value = wallpaperConfig[key];
+            console.log(key, value);
+            // QDBusMarshaller: cannot add a null QDBusVariant
+            if (value === null || value === undefined) {
+                continue;
+            }
+            config[key] = value;
         }
         return config;
     }
@@ -248,12 +272,11 @@ PlasmoidItem {
         }
         config = getConfig();
         serializedConfig = serializeConfig(config);
-        console.log(`syncing wallpaper plugin:`, pluginName, "config:", JSON.stringify(config));
         if (syncAllScreens) {
             setDesktopAllScreens(lastUsedPlugin, config);
         }
         if (syncLockScreen) {
-            setLockScreen(lastUsedPlugin, serializedConfig);
+            setLockScreen(lastUsedPlugin, config, serializedConfig);
         }
     }
 
