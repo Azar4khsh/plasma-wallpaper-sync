@@ -255,14 +255,19 @@ PlasmoidItem {
     }
 
     // Plugins may save colors as Color type, we need to convert them
-    // to a format plugins can read back from the configuration
+    // to a format plugins can read back from the configuration file
     function serializeConfig(config) {
+        const to255 = val => Math.min(255, Math.max(0, Math.round(val * 255)));
+        const rgbToHex = (red, green, blue) => {
+            const rgb = (to255(red) << 16) | (to255(green) << 8) | (to255(blue) << 0);
+            return '#' + (0x1000000 + rgb).toString(16).slice(1);
+        };
         return JSON.stringify(config, function (key, value) {
             // qmlformat off
             if (typeof value === "object" && value !== null &&
                 typeof value.r === "number" && typeof value.g === "number" &&
                 typeof value.b === "number" && typeof value.a === "number") {
-                return value.toString();
+                return `${rgbToHex(value.r, value.g, value.b)}`
             }
             // qmlformat on
             return value;
@@ -277,7 +282,7 @@ PlasmoidItem {
             }
             const value = wallpaperConfig[key];
             console.log(key, value);
-            // QDBusMarshaller: cannot add a null QDBusVariant
+            // Not sure if this is even possible but doesn't hurt to check
             if (value === null || value === undefined) {
                 continue;
             }
@@ -294,7 +299,9 @@ PlasmoidItem {
         if (lastUsedPlugin === "org.kde.slideshow") {
             lastUsedPlugin = "org.kde.image";
         }
-        config = getConfig();
+        // Deep copy because the KConfigPropertyMap can change and have
+        // invalid values, notably example is when all monitors are unplugged
+        config = JSON.parse(JSON.stringify(getConfig()));
         serializedConfig = serializeConfig(config);
         if (syncAllScreens) {
             setDesktopAllScreens(lastUsedPlugin, config);
