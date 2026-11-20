@@ -53,6 +53,10 @@ PlasmoidItem {
         } catch (e) {
             console.debug("WallpaperSync plugin not found:", e);
         }
+        if (Plasmoid.configuration.pluginAvailable !== pluginAvailable) {
+            Plasmoid.configuration.pluginAvailable = pluginAvailable;
+            Plasmoid.configuration.writeConfig();
+        }
         // qmlformat on
     }
 
@@ -218,7 +222,7 @@ PlasmoidItem {
         }
         runCommand.exec(cmds.join(" && "), output => {
             if (output.exitCode !== 0) {
-                let where = "Lock(helper)";
+                let where = "Lock(plugin)";
                 let message = `Failed to set wallpaper: ${pluginError}`;
                 setError(where, message);
                 console.warn(`${where}: ${message}`);
@@ -229,7 +233,7 @@ PlasmoidItem {
                 setError(where, message);
                 console.warn(`${where}: ${message}`);
             } else {
-                setError("Lock(helper)");
+                setError("Lock(plugin)");
                 setError("Lock(fallback)");
             }
         });

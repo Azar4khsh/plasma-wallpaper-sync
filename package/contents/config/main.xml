@@ -23,5 +23,8 @@
     <entry name="hideWidget" type="Bool">
       <default>False</default>
     </entry>
+    <entry name="pluginAvailable" type="Bool">
+      <default>False</default>
+    </entry>
   </group>
 </kcfg>

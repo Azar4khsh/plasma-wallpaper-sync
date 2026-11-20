@@ -4,6 +4,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
+import org.kde.plasma.plasmoid
 
 KCM.SimpleKCM {
     id: root
@@ -13,6 +14,18 @@ KCM.SimpleKCM {
     property alias cfg_syncLoginScreen: syncLoginScreen.checked
 
     ColumnLayout {
+        Kirigami.InlineMessage {
+            id: warningResources
+            Layout.fillWidth: true
+            type: Kirigami.MessageType.Information
+            text: i18n("See README for instructions to install with C++ plugin.")
+            visible: !Plasmoid.configuration.pluginAvailable
+            actions: Kirigami.Action {
+                text: "Install instructions"
+                icon.name: "open-link-symbolic"
+                onTriggered: Qt.openUrlExternally("https://github.com/luisbocanegra/plasma-wallpaper-sync#build-from-source#installation")
+            }
+        }
         Kirigami.FormLayout {
             CheckBox {
                 id: isEnabled
@@ -31,10 +44,11 @@ KCM.SimpleKCM {
             }
 
             Label {
-                text: i18n("Requires helper or kwriteconfig6")
+                text: i18n("Requires kwriteconfig6 or C++ plugin")
                 wrapMode: Text.WordWrap
                 font: Kirigami.Theme.smallFont
                 Layout.preferredWidth: 400
+                textFormat: Text.RichText
             }
 
             RowLayout {
@@ -45,7 +59,7 @@ KCM.SimpleKCM {
                 }
             }
             Label {
-                text: i18n("Requires Plasma Login Manager and helper and only works with the built-in wallpaper plugins. Check the project <a href=\"%1\">README</a> for instructions.", "https://github.com/luisbocanegra/plasma-wallpaper-sync")
+                text: i18n("Requires C++ plugin and Plasma Login Manager. Only works with built-in wallpaper plugins.")
                 Layout.preferredWidth: 400
                 wrapMode: Text.WordWrap
                 font: Kirigami.Theme.smallFont
