@@ -16,6 +16,10 @@ Consider sponsoring or donating to support the continued maintenance of this and
 
 ---
 
+## Requirements
+
+- KDE Plasma 6.4.0 and newer
+
 ## Installation
 
 ### From Source
@@ -27,8 +31,8 @@ Consider sponsoring or donating to support the continued maintenance of this and
     sudo pacman -S git gcc cmake extra-cmake-modules libplasma kauth
     # Fedora
     sudo dnf install git gcc-c++ cmake extra-cmake-modules libplasma-devel kf6-kconfig-devel kf6-kauth-devel
-    # Debian/Ubuntu
-    sudo apt install git build-essential cmake extra-cmake-modules libplasma-dev libkf6config-dev libkf6auth-dev
+    # Kubuntu/Debian sid
+    sudo apt install git build-essential cmake extra-cmake-modules qt6-base-dev libplasma-dev libkf6config-dev libkf6auth-dev
     # openSUSE
     sudo zypper install git cmake extra-cmake-modules libplasma6-devel kf6-kconfig-devel kf6-kauth-devel
     ```
@@ -47,6 +51,8 @@ Consider sponsoring or donating to support the continued maintenance of this and
 2. By default, it will automatically monitor and synchronize wallpaper changes to all monitors, the lock screen, and the login screen, this can be configured in the widget settings.
 3. Right click to hide the widget so it only shows in Edit Mode.
 
+A commandline utility `plasma-wallpaper-sync-helper` will also be installed when building from source, initially the widget used it internally to apply lock and login wallpapers, can be used for scripting or troubleshooting.
+
 ### Login Screen Support
 
 This requires that either you or you distribution have switched from SDDM to **Plasma Login Manager**. You can check if that's the case by running `systemctl is-enabled plasmalogin`, it should return `enabled`.
@@ -58,9 +64,6 @@ If it returns `disabled` or `not-found` search for how to do this in your distri
 - Only the configuration is synchronized, plugins that display dynamic content may not stay synchronized everywhere.
 - For Plasma Login Manager, only the built-in wallpaper plugins are currently supported. This is because the login manager does not have access (and shouldn't) to other user's files, see [How it works](#how-it-works) for more details.
 
-> [!WARNING]
-> [Opening the wallpaper settings dialog may cause a plasmashell crash on Plasma 6.7 and older](https://bugs.kde.org/show_bug.cgi?id=525207), update to Plasma 6.8 or remove the widget while configuring the wallpaper.
-
 ## How it works
 
 The widget monitors the desktop wallpaper for changes then:
@@ -69,7 +72,7 @@ The widget monitors the desktop wallpaper for changes then:
 - For the lock screen it copies the configuration to `$HOME/.config/kscreenlockerrc`
 - For the Login Screen it uses KAuth to copy the configuration to `/etc/plasmalogin.conf`, and when using the Image and Slideshow wallpaper plugins the current image is copied to plasmalogin's `$HOME/wallpapers` directory.
 
-> [!WARNING]
+> [!NOTE]
 > By default the KAuth action policy is set to allow all users to change the Login Screen wallpaper without requesting authentication, if you want to change this see the KAuth documentation: <https://develop.kde.org/docs/features/kauth/#the-basic-actions-file> then rebuild from source.
 
 ## Acknowledgements
