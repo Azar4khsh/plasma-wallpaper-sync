@@ -2,7 +2,7 @@
 
 KDE Plasma Widget that synchronizes the current Desktop wallpaper to other Monitors, Lock Screen and Login Screen (Plasma Login Manager).
 
-Quick and dirty way to automatically sync wallpapers all across Plasma until a proper upstream implementation becomes available.
+Quick and dirty way to automatically sync wallpapers until a proper upstream implementation becomes available.
 
 ---
 
@@ -23,17 +23,15 @@ Consider sponsoring or donating to support the continued maintenance of this and
 1. Install these dependencies or the equivalents for your distribution
 
     ```sh
-    # Arch Linux
-    sudo pacman -S git gcc cmake extra-cmake-modules libplasma
+    # Arch Linux/Arch based
+    sudo pacman -S git gcc cmake extra-cmake-modules libplasma kauth
     # Fedora
-    sudo dnf install git gcc-c++ cmake extra-cmake-modules libplasma-devel
-    # Kubuntu
-    sudo apt install git build-essential cmake extra-cmake-modules libplasma-dev
+    sudo dnf install git gcc-c++ cmake extra-cmake-modules libplasma-devel kf6-kconfig-devel kf6-kauth-devel
+    # Debian/Ubuntu
+    sudo apt install git build-essential cmake extra-cmake-modules libplasma-dev libkf6config-dev libkf6auth-dev
     # openSUSE
-    sudo zypper install git cmake extra-cmake-modules libplasma6-devel
+    sudo zypper install git cmake extra-cmake-modules libplasma6-devel kf6-kconfig-devel kf6-kauth-devel
     ```
-
-    _Additional dependencies like `kauth` devel packages may be required depending on your distribution, this will be updated later (PRs welcome)_
 
 2. Clone and install
 
@@ -45,13 +43,13 @@ Consider sponsoring or donating to support the continued maintenance of this and
 
 ## Usage
 
-1. Once installed, add the "Wallpaper Sync" widget to your desktop.
+1. Once installed, add the "Wallpaper Sync" widget to one of your desktop.
 2. By default, it will automatically monitor and synchronize wallpaper changes to all monitors, the lock screen, and the login screen, this can be configured in the widget settings.
 3. Right click to hide the widget so it only shows in Edit Mode.
 
 ### Login Screen Support
 
-This requires that either you or you distribution have switched from SDDM to Plasma Login Manager. You can check if that's the case by running `systemctl is-enabled plasmalogin`, it should return `enabled`.
+This requires that either you or you distribution have switched from SDDM to **Plasma Login Manager**. You can check if that's the case by running `systemctl is-enabled plasmalogin`, it should return `enabled`.
 
 If it returns `disabled` or `not-found` search for how to do this in your distribution documentation, [instructions for Arch](https://wiki.archlinux.org/title/Plasma_Login_Manager), [instructions for Fedora](https://discussion.fedoraproject.org/t/replace-sddm-with-plasma-login-manager-after-the-upgrade/190632).
 
@@ -67,13 +65,12 @@ If it returns `disabled` or `not-found` search for how to do this in your distri
 
 The widget monitors the desktop wallpaper for changes then:
 
-- Mirrors the new configuration to other monitors using [Plasma D-Bus API](https://invent.kde.org/plasma/plasma-workspace/-/blob/master/shell/dbus/org.kde.PlasmaShell.xml?ref_type=heads).
+- Applies the new configuration to all other monitors using [Plasma D-Bus API](https://invent.kde.org/plasma/plasma-workspace/-/blob/master/shell/dbus/org.kde.PlasmaShell.xml?ref_type=heads).
 - For the lock screen it copies the configuration to `$HOME/.config/kscreenlockerrc`
-- For the Login Screen it uses KAuth to copy the configuration to `/etc/plasmalogin.conf`.
-- When using the Image and Slideshow wallpaper plugins, the current image is copied to plasmalogin's `$HOME/wallpapers` directory
+- For the Login Screen it uses KAuth to copy the configuration to `/etc/plasmalogin.conf`, and when using the Image and Slideshow wallpaper plugins the current image is copied to plasmalogin's `$HOME/wallpapers` directory.
 
 > [!WARNING]
-> By default the KAuth actions policy is set to allow all users to change the Login Screen wallpaper without requesting authentication, if you want to change this see the KAuth documentation: <https://develop.kde.org/docs/features/kauth/#the-basic-actions-file> then rebuild from source.
+> By default the KAuth action policy is set to allow all users to change the Login Screen wallpaper without requesting authentication, if you want to change this see the KAuth documentation: <https://develop.kde.org/docs/features/kauth/#the-basic-actions-file> then rebuild from source.
 
 ## Acknowledgements
 
