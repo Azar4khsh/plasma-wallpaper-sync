@@ -31,7 +31,7 @@ PlasmoidItem {
     property bool delay: false
     property bool destroying: false
     property bool completed: false
-    property string serializedConfig
+    property string configString
     property var config: ({})
     property string lastUsedPlugin
     readonly property bool pluginAvailable: syncPlugin !== null
@@ -115,7 +115,7 @@ PlasmoidItem {
         function dbusAboutToLock() {
             console.log(Plasmoid.id, "About to lock");
             if (root.syncLoginScreen) {
-                setPlasmaLogin(lastUsedPlugin, root.serializedConfig);
+                setPlasmaLogin(lastUsedPlugin, root.configString);
             }
         }
     }
@@ -125,7 +125,7 @@ PlasmoidItem {
         function onAboutToQuit() {
             console.log(Plasmoid.id, "About to quit");
             if (root.syncLoginScreen) {
-                setPlasmaLogin(lastUsedPlugin, root.serializedConfig);
+                setPlasmaLogin(lastUsedPlugin, root.configString);
             }
         }
         function onScreensChanged() {
@@ -200,10 +200,10 @@ PlasmoidItem {
         return "'" + s.replace(/'/g, "'\\''") + "'";
     }
 
-    function setLockScreen(plugin: string, config: var, serializedConfig: string) {
+    function setLockScreen(plugin: string, config: var, configString: string) {
         let error;
         if (pluginAvailable) {
-            error = syncPlugin.setLockScreenWallpaper(plugin, serializedConfig);
+            error = syncPlugin.setLockScreenWallpaper(plugin, configString);
             if (!error) {
                 return;
             }
@@ -241,10 +241,10 @@ PlasmoidItem {
 
     // FIXME(?): KAuth logs a warning about the parent window (DesktopView)
     // not being an XDG toplevel window
-    function setPlasmaLogin(plugin: string, serializedConfig: string) {
+    function setPlasmaLogin(plugin: string, configString: string) {
         let error;
         if (pluginAvailable) {
-            error = syncPlugin.setPlasmaLoginWallpaper(plugin, serializedConfig);
+            error = syncPlugin.setPlasmaLoginWallpaper(plugin, configString);
         } else {
             error = "Plugin not found";
         }
@@ -278,6 +278,24 @@ PlasmoidItem {
         });
     }
 
+    // Plugins may save colors as Color type, we need to convert them
+    // to a format plugins can be sent over dbus and the configuration files
+    function convertValue(value) {
+        const to255 = val => Math.min(255, Math.max(0, Math.round(val * 255)));
+        const rgbToHex = (red, green, blue) => {
+            const rgb = (to255(red) << 16) | (to255(green) << 8) | (to255(blue) << 0);
+            return '#' + (0x1000000 + rgb).toString(16).slice(1);
+        };
+        // qmlformat off
+        if (typeof value === "object" && value !== null &&
+            typeof value.r === "number" && typeof value.g === "number" &&
+            typeof value.b === "number" && typeof value.a === "number") {
+            return `${rgbToHex(value.r, value.g, value.b)}`
+        }
+        // qmlformat on
+        return value;
+    }
+
     function getConfig() {
         let config = {};
         for (let key of wallpaperConfig.keys()) {
@@ -290,7 +308,7 @@ PlasmoidItem {
             if (value === null || value === undefined) {
                 continue;
             }
-            config[key] = value;
+            config[key] = convertValue(value);
         }
         return config;
     }
@@ -305,13 +323,14 @@ PlasmoidItem {
         }
         // Deep copy because the KConfigPropertyMap can change and have
         // invalid values, notably example is when all monitors are unplugged
-        config = JSON.parse(JSON.stringify(getConfig()));
-        serializedConfig = serializeConfig(config);
+        configString = JSON.stringify(getConfig());
+        config = JSON.parse(configString);
+        console.log(JSON.stringify(config));
         if (syncAllScreens) {
             setDesktopAllScreens(lastUsedPlugin, config);
         }
         if (syncLockScreen) {
-            setLockScreen(lastUsedPlugin, config, serializedConfig);
+            setLockScreen(lastUsedPlugin, config, configString);
         }
     }
 
