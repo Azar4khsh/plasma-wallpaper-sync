@@ -4,6 +4,9 @@ KDE Plasma Widget that synchronizes the current Desktop wallpaper to other Monit
 
 Quick and dirty way to automatically sync wallpapers until a proper upstream implementation becomes available.
 
+
+<img width="1440" height="405" alt="demo" src="https://github.com/user-attachments/assets/782c335f-88ff-4e0c-b21c-4eb6e8605390" />
+
 ---
 
 Consider sponsoring or donating to support the continued maintenance of this and [my other projects](https://github.com/luisbocanegra?tab=repositories&q=&type=source&language=&sort=stargazers) ❤️
@@ -15,6 +18,7 @@ Consider sponsoring or donating to support the continued maintenance of this and
 [![Patreon](https://img.shields.io/badge/Patreon-%23000000?logo=patreon&logoColor=%23ffffff&style=for-the-badge)](https://patreon.com/luisbocanegra?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink)
 
 ---
+
 
 ## Requirements
 
