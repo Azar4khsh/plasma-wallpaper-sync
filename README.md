@@ -22,7 +22,7 @@ Consider sponsoring or donating to support the continued maintenance of this and
 
 ## Installation
 
-### From Source
+### From Source (with C++ plugin)
 
 1. Install these dependencies or the equivalents for your distribution
 
@@ -31,8 +31,10 @@ Consider sponsoring or donating to support the continued maintenance of this and
     sudo pacman -S git gcc cmake extra-cmake-modules libplasma kauth
     # Fedora
     sudo dnf install git gcc-c++ cmake extra-cmake-modules libplasma-devel kf6-kconfig-devel kf6-kauth-devel
-    # Kubuntu/Debian sid
+    # Kubuntu
     sudo apt install git build-essential cmake extra-cmake-modules qt6-base-dev libplasma-dev libkf6config-dev libkf6auth-dev
+    # Debian testing/unstable
+    sudo apt install git build-essential cmake extra-cmake-modules qt6-base-dev libplasma-dev libkf6config-dev libkf6auth-dev qml6-module-org-kde-plasma-workspace
     # openSUSE
     sudo zypper install git cmake extra-cmake-modules libplasma6-devel kf6-kconfig-devel kf6-kauth-devel
     ```
@@ -73,7 +75,7 @@ The widget monitors the desktop wallpaper for changes then:
 - For the Login Screen it uses KAuth to copy the configuration to `/etc/plasmalogin.conf`, and when using the Image and Slideshow wallpaper plugins the current image is copied to plasmalogin's `$HOME/wallpapers` directory.
 
 > [!NOTE]
-> By default the KAuth action policy is set to allow all users to change the Login Screen wallpaper without requesting authentication, if you want to change this see the KAuth documentation: <https://develop.kde.org/docs/features/kauth/#the-basic-actions-file> then rebuild from source.
+> By default the installed KAuth action is set to allow all users to change the Login Screen wallpaper without requesting authentication, if you want to change this see the KAuth documentation: <https://develop.kde.org/docs/features/kauth/#the-basic-actions-file> then rebuild from source.
 
 ## Acknowledgements
 
