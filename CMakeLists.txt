@@ -26,6 +26,8 @@ message("Version: ${CUR_VERSION}")
 if(INSTALL_PLASMOID)
     find_package(Plasma ${PROJECT_DEP_VERSION} REQUIRED)
     plasma_install_package(package ${PLUGIN_ID})
+    # System-wide translations
+    add_subdirectory(translate)
 endif()
 
 if(BUILD_HELPER)
@@ -33,6 +35,17 @@ if(BUILD_HELPER)
 endif()
 
 if(PACKAGE_PLASMOID)
+    # Translations in plasmoid file
+    find_program(GETTEXT_MSGFMT_EXECUTABLE msgfmt)
+    if (NOT GETTEXT_MSGFMT_EXECUTABLE)
+        message(WARNING "-- msgfmt: not found. Translations will not be installed")
+    else()
+        add_custom_target(translations ALL
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            COMMAND ./bin/i18n compile
+            COMMENT "Compiling translations"
+        )
+    endif()
     set(PLASMOID_FILE "${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}-v${CUR_VERSION}.plasmoid")
     add_custom_target(plasmoid ALL
         COMMAND rm -rf "${PLASMOID_FILE}"
